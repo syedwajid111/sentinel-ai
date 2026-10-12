@@ -95,6 +95,9 @@ else:
                     f.write(uploaded.getbuffer())
             video_source = temp_path
 
+loop_video = st.sidebar.checkbox("Loop video", value=True, disabled=source_type == "Webcam",
+                                 help="Restart the clip when it ends, so the demo keeps running.")
+
 st.sidebar.subheader("Detection settings")
 confidence = st.sidebar.slider("Confidence threshold", 0.1, 0.9, config.DEFAULT_CONFIDENCE, 0.05)
 iou = st.sidebar.slider("IoU threshold", 0.1, 0.9, config.DEFAULT_IOU, 0.05)
@@ -113,7 +116,8 @@ def live_monitor_page():
         if st.session_state.processor is not None and st.session_state.processor.is_running():
             st.session_state.processor.stop()
         zones = load_zones()
-        processor = VideoProcessor(source=video_source, zones=zones, confidence=confidence, iou=iou)
+        processor = VideoProcessor(source=video_source, zones=zones, confidence=confidence, iou=iou,
+                                   loop=loop_video)
         try:
             processor.start()
             st.session_state.processor = processor
