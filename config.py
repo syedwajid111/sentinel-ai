@@ -39,6 +39,11 @@ DEMO_VIDEO_URLS = [
 ]
 DEMO_VIDEO_CREDIT = "Demo clip: “Thief Stealing Handbag from a Car” — Pexels (free license)"
 MAX_UPLOAD_MB = 200
+# Free cloud CPUs get throttled if YOLO runs flat out, so in cloud mode we analyse at most
+# CLOUD_MAX_FPS frames/second (frames in between are skipped, playback stays real-time) and
+# stop automatically when nobody has been watching the page for IDLE_STOP_SECONDS.
+CLOUD_MAX_FPS = 8
+IDLE_STOP_SECONDS = 30
 
 # --- Model ---
 MODEL_WEIGHTS = os.path.join(MODELS_DIR, "yolov8n.pt")  # falls back to auto-download if missing
