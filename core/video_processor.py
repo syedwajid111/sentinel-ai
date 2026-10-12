@@ -33,6 +33,7 @@ class VideoProcessor:
         self.latest_frame = None
         self.latest_alerts = []
         self.latest_incidents = []
+        self._pending_alerts = []
         self.stats = {"fps": 0.0, "people_count": 0, "object_count": 0, "total_alerts": 0}
 
     def set_zones(self, zones):
@@ -63,6 +64,12 @@ class VideoProcessor:
         with self._lock:
             frame = None if self.latest_frame is None else self.latest_frame.copy()
             return frame, list(self.latest_alerts), dict(self.stats)
+
+    def pop_alerts(self):
+        """Alerts raised since the last call, each returned exactly once (for the live UI)."""
+        with self._lock:
+            out, self._pending_alerts = self._pending_alerts, []
+            return out
 
     def pop_incidents(self):
         """Incidents raised by the Incident Agent since the last call (for live UI toasts)."""
@@ -100,6 +107,7 @@ class VideoProcessor:
                 self.latest_frame = annotated
                 self.latest_alerts = alerts
                 self.latest_incidents.extend(new_incidents)
+                self._pending_alerts.extend(alerts)
                 self.stats = {
                     "fps": round(fps, 1),
                     "people_count": sum(1 for d in detections if d["class_id"] == config.PERSON_CLASS_ID),
