@@ -2,8 +2,11 @@
 Real-Time Theft & Intrusion Detection
 Streamlit entry point. Run with: streamlit run app.py
 """
+import base64
 import os
 import time
+
+import cv2
 
 import pandas as pd
 import streamlit as st
@@ -134,7 +137,7 @@ def live_monitor_page():
     _live_fragment(processor)
 
 
-@st.fragment(run_every=0.2)
+@st.fragment(run_every=0.5 if config.IS_CLOUD else 0.2)
 def _live_fragment(processor):
     # Create the placeholders only ONCE per monitoring session (cached in
     # session_state), then reuse the same objects on every fragment tick.
@@ -153,10 +156,19 @@ def _live_fragment(processor):
         frame_slot.warning("Video source ended or disconnected.")
         return
 
-    frame, alerts, stats = processor.get_state()
+    frame, _, stats = processor.get_state()
+    alerts = processor.pop_alerts()
 
     if frame is not None:
-        frame_slot.image(frame[:, :, ::-1], channels="RGB", width="stretch")
+        # Embed the frame inline (base64) instead of st.image: on cloud hosting, rapidly
+        # replaced st.image media files can be deleted before the browser fetches them (404).
+        ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        if ok:
+            b64 = base64.b64encode(buf.tobytes()).decode()
+            frame_slot.markdown(
+                f'<img src="data:image/jpeg;base64,{b64}" style="width:100%;border-radius:10px" alt="live frame"/>',
+                unsafe_allow_html=True,
+            )
 
     with metrics_slot.container():
         c1, c2, c3, c4 = st.columns(4)
