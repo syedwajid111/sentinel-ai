@@ -32,6 +32,31 @@ def get_db():
     return st.session_state.db
 
 
+def ensure_demo_video():
+    """Return a local path to the demo clip, downloading it once if it is not bundled."""
+    if os.path.isfile(config.DEMO_VIDEO_PATH) and os.path.getsize(config.DEMO_VIDEO_PATH) > 100_000:
+        return config.DEMO_VIDEO_PATH
+    import requests
+    st.sidebar.info("Downloading demo video (first time only, ~10 s)…")
+    os.makedirs(os.path.dirname(config.DEMO_VIDEO_PATH), exist_ok=True)
+    tmp = config.DEMO_VIDEO_PATH + ".part"
+    for url in config.DEMO_VIDEO_URLS:
+        try:
+            with requests.get(url, stream=True, timeout=60, headers={"User-Agent": "Mozilla/5.0"}) as r:
+                if r.status_code != 200:
+                    continue
+                with open(tmp, "wb") as f:
+                    for chunk in r.iter_content(1 << 20):
+                        f.write(chunk)
+            if os.path.getsize(tmp) > 100_000:
+                os.replace(tmp, config.DEMO_VIDEO_PATH)
+                return config.DEMO_VIDEO_PATH
+        except Exception:
+            continue
+    st.sidebar.error("Could not download the demo video. Please use 'Upload video' instead.")
+    return None
+
+
 # ---------- Sidebar ----------
 st.sidebar.title(f"🛡️ {config.APP_NAME}")
 st.sidebar.caption(config.APP_TAGLINE)
@@ -42,8 +67,7 @@ page = st.sidebar.radio(
 
 st.sidebar.divider()
 st.sidebar.subheader("Video source")
-has_demo = os.path.isfile(config.DEMO_VIDEO_PATH)
-source_options = ([] if config.IS_CLOUD else ["Webcam"]) + (["Demo video"] if has_demo else []) + ["Upload video"]
+source_options = ([] if config.IS_CLOUD else ["Webcam"]) + ["Demo video", "Upload video"]
 source_type = st.sidebar.radio("Source type", source_options, horizontal=True)
 if config.IS_CLOUD:
     st.sidebar.caption("Cloud mode: a server has no webcam, so use the demo clip or upload CCTV footage.")
@@ -53,7 +77,8 @@ if source_type == "Webcam":
     cam_index = st.sidebar.number_input("Webcam index", min_value=0, max_value=10, value=0)
     video_source = int(cam_index)
 elif source_type == "Demo video":
-    video_source = config.DEMO_VIDEO_PATH
+    video_source = ensure_demo_video()
+    st.sidebar.caption(config.DEMO_VIDEO_CREDIT)
 else:
     uploaded = st.sidebar.file_uploader("Upload a video file", type=["mp4", "avi", "mov", "mkv"])
     if uploaded is not None:
