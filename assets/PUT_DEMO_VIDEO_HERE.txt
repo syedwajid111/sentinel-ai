@@ -1,0 +1,2 @@
+Is folder mein apni demo CCTV video "demo.mp4" naam se rakh do (20-60 second, 720p ya kam).
+Phir sidebar mein "Demo video" option khud aa jayega.
