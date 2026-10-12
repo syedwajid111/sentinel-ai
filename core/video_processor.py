@@ -22,6 +22,8 @@ class VideoProcessor:
         self.source = source
         self.is_file = isinstance(source, str)
         self.loop = loop and self.is_file
+        self.max_fps = config.CLOUD_MAX_FPS if config.IS_CLOUD else 0
+        self._last_heartbeat = time.time()
         self.detector = YOLODetector(confidence=confidence, iou=iou)
         self.history = TrackHistory()
         self.engine = BehaviorEngine(zones=zones)
@@ -43,6 +45,10 @@ class VideoProcessor:
 
     def is_running(self):
         return self._running
+
+    def heartbeat(self):
+        """Called by the UI while someone is watching; without it the cloud worker stops itself."""
+        self._last_heartbeat = time.time()
 
     def start(self):
         if self._running:
@@ -85,8 +91,17 @@ class VideoProcessor:
         # Play video files at their real speed (otherwise a fast server finishes a clip in seconds)
         src_fps = self._cap.get(cv2.CAP_PROP_FPS) if self.is_file else 0
         frame_interval = 1.0 / src_fps if src_fps and src_fps > 1 else 0.0
+        skip = 1
+        if self.is_file and self.max_fps and src_fps and src_fps > self.max_fps:
+            skip = int(round(src_fps / self.max_fps))  # analyse every Nth frame, still real-time
+            frame_interval *= skip
         while self._running:
             t_start = time.time()
+            if config.IS_CLOUD and t_start - self._last_heartbeat > config.IDLE_STOP_SECONDS:
+                self._running = False  # nobody is watching: free the shared CPU
+                break
+            for _ in range(skip - 1):
+                self._cap.grab()
             ok, frame = self._cap.read()
             if not ok:
                 if self.loop:
