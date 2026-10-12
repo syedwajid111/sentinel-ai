@@ -18,8 +18,10 @@ from utils.alert_manager import AlertManager
 
 
 class VideoProcessor:
-    def __init__(self, source=0, zones=None, confidence=None, iou=None):
+    def __init__(self, source=0, zones=None, confidence=None, iou=None, loop=False):
         self.source = source
+        self.is_file = isinstance(source, str)
+        self.loop = loop and self.is_file
         self.detector = YOLODetector(confidence=confidence, iou=iou)
         self.history = TrackHistory()
         self.engine = BehaviorEngine(zones=zones)
@@ -80,11 +82,19 @@ class VideoProcessor:
     def _loop(self):
         prev_t = time.time()
         total_alerts = 0
+        # Play video files at their real speed (otherwise a fast server finishes a clip in seconds)
+        src_fps = self._cap.get(cv2.CAP_PROP_FPS) if self.is_file else 0
+        frame_interval = 1.0 / src_fps if src_fps and src_fps > 1 else 0.0
         while self._running:
+            t_start = time.time()
             ok, frame = self._cap.read()
             if not ok:
-                self._running = False
-                break
+                if self.loop:
+                    self._cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                    ok, frame = self._cap.read()
+                if not ok:
+                    self._running = False
+                    break
 
             frame = preprocess_frame(frame, config.FRAME_WIDTH, config.FRAME_HEIGHT, config.APPLY_DENOISE)
             detections = self.detector.track(frame)
@@ -114,3 +124,7 @@ class VideoProcessor:
                     "object_count": sum(1 for d in detections if d["class_id"] in config.VALUABLE_OBJECT_CLASS_IDS),
                     "total_alerts": total_alerts,
                 }
+
+            spare = frame_interval - (time.time() - t_start)
+            if spare > 0:
+                time.sleep(spare)
