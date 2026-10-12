@@ -30,6 +30,14 @@ for _dir in (MODELS_DIR, SNAPSHOTS_DIR, RECORDINGS_DIR):
 IS_CLOUD = (bool(os.getenv("SPACE_ID")) or os.path.isdir("/mount/src")
             or os.getenv("SENTINEL_CLOUD", "0") == "1")
 DEMO_VIDEO_PATH = os.path.join(BASE_DIR, "assets", "demo.mp4")
+# If assets/demo.mp4 is not in the repo, the app downloads this free-licensed clip on first use
+# ("Thief Stealing Handbag from a Car" — Pexels, free to use: https://www.pexels.com/video/854221/)
+DEMO_VIDEO_URLS = [
+    "https://videos.pexels.com/video-files/854221/854221-sd_960_540_24fps.mp4",
+    "https://videos.pexels.com/video-files/854221/854221-hd_1280_720_24fps.mp4",
+    "https://videos.pexels.com/video-files/854221/854221-hd_1920_1080_24fps.mp4",
+]
+DEMO_VIDEO_CREDIT = "Demo clip: “Thief Stealing Handbag from a Car” — Pexels (free license)"
 MAX_UPLOAD_MB = 200
 
 # --- Model ---
