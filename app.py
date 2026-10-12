@@ -152,6 +152,7 @@ def _live_fragment(processor):
         st.session_state.live_metrics_slot = st.empty()
         st.session_state.live_alerts_slot = st.empty()
 
+    processor.heartbeat()
     frame_slot = st.session_state.live_frame_slot
     metrics_slot = st.session_state.live_metrics_slot
     alerts_slot = st.session_state.live_alerts_slot
