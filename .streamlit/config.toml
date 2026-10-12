@@ -1,0 +1,11 @@
+[theme]
+base = "dark"
+primaryColor = "#3B82F6"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#131722"
+
+[server]
+maxUploadSize = 200
+
+[client]
+toolbarMode = "minimal"
